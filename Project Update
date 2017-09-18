@@ -1,0 +1,6 @@
+Week 3 update
+
+Continued to clean up the data. The netflix combined data sets are quite large and in a weird format. A simple java parser was created to
+format it as a true csv. It is now ready for use by neo4j and anything else we decide to try. The next step is to get a neo4j instance
+running on aws. Frank has one running locally but ideally it would be accessible by everyone. Otherwise we will need to all install locally
+and share script files.
