@@ -1,3 +1,106 @@
+Week 4
+
+To do:
+1.	Figure out how to load large dataset into neo4j
+a.	Where is file placed. Our file is massive so it will be interesting. 
+2.	Add movie titles to Netflix csv
+3.	Import into neo4j
+4.	Create nodes and relationships
+5.	Create basic recommendation query
+6.	Add imdb data to appropriate nodes (maybe with extra label)
+7.	Look at recommendation algorithms that can use the extra data
+8.	Figure out how to display query results via DS3
+a.	Can we drill down in DS3 (i.e. if a movie has a genre can we have a second level of recommendations from clicking on genre name
+
+This week I worked on some sample cypher queries. I figured these out using a marketing dataset from work. Basic structure is (:Contact)-[:Has_BusinessUnit]->(:BusinessUnit). I believe we will have something similar with (:User)-[:Rated]->(:Movie). Then movie can have properties from imdb (where we have it) and a title. User is just a userid because of Netflix anonymization. 
+
+LOAD CSV FROM "file:///contacts.csv" AS line RETURN count(*);
+ 
+LOAD CSV WITH HEADERS FROM "file:///contacts.csv" AS line WITH line
+RETURN line
+LIMIT 5;
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///contacts.csv" AS row
+CREATE (:Contact {EmailAddress: row.EmailAddress, LastName: row.LastName, FirstName: row.FirstName, EmailDeliverabilityStatus:row.EmailDeliverabilityStatus});
+ 
+CREATE INDEX ON :Contact(EmailAddress);
+ 
+ 
+####To add or change a property
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///contacts.csv" AS row
+MATCH (c:Contact {EmailAddress: row.EmailAddress}) SET c.ADV=row.ADV;
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///contacts.csv" AS row
+MERGE (c:Contact {EmailAddress: row.EmailAddress})
+ON CREATE SET c.ADV=row.ADV
+ON MATCH SET c.ADV=row.ADV;
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///contacts.csv" AS row
+MERGE (c:Contact {EmailAddress: row.EmailAddress})
+ON CREATE SET c.ContactID=row._ContactId
+ON MATCH SET c.ContactID=row._ContactId;
+ 
+ 
+*****************
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///reps.csv" AS row
+CREATE (:Rep {RepID: row._RepId, EmailAddress:row.EmailAddress});
+ 
+CREATE INDEX ON :Rep(RepID);
+CREATE INDEX ON :Contact(ContactID);
+ 
+ 
+*****************
+///USING PERIODIC COMMIT
+///LOAD CSV WITH HEADERS FROM "file:///CR_Small_Set.csv" AS row
+///MERGE (r:Rep {RepId: row._RepId})-[:OWNS_CONTACT]->(c:Contact {ContactID: row._ContactId});
+ 
+///CREATE (c)-[:HAS_REP]->(r);
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///contactRep.csv" AS row
+MATCH (c:Contact),(r:Rep)
+WHERE c.ContactID = row._ContactId AND r.RepID = row._RepId
+CREATE (r)-[n:Has_Contact]->(c);
+ 
+********************
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///bu.csv" AS row
+CREATE (:BusinessUnit {BusinessUnitId: row._BusinessUnitId, Abbreviation:row.Abbreviation, Description:row.Description, MarketingProgram:row.ResponsysMarketingProgram});
+ 
+********************
+ 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///ContactBusinessUnit.csv" AS row
+MATCH (b:BusinessUnit),(c:Contact)
+WHERE b.BusinessUnitId = row._BusinessUnitId AND c.ContactID = row._ContactId
+CREATE (c)-[r:Has_BusinessUnit {CRMId:row.CRMId}]->(b);
+ 
+ 
+********************
+ 
+ 
+MATCH (c:Contact)-[:Has_BusinessUnit]->(b:BusinessUnit)
+With c, count(b) as rels, collect(b) as Units
+WHERE rels > 4
+return c, Units, rels;
+ 
+****not sure if below works
+MATCH (c:Contact)-[:Has_BusinessUnit]->(b:BusinessUnit)
+where b.BusinessUnitId<>'7'
+With c, count(b) as rels, collect(b) as Units
+WHERE rels = 2
+return count(rels);
+ 
+
+
+
 Week 3 update
 
 Continued to clean up the data. The netflix combined data sets are quite large and in a weird format. A simple java parser was created to
